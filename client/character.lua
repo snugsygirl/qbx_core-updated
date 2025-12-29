@@ -389,9 +389,6 @@ local function cinematicSpawn(coords)
     local pos = coords
     local dict = IsPedMale(cache.ped) and 'anim@scripted@heist@ig25_beach@male@' or 'anim@scripted@heist@ig25_beach@heeled@'
     
-    -- Hide the zoom up instantly
-    DoScreenFadeOut(0)
-    
     -- Sky Switch sequence
     SwitchToMultiFirstpart(cache.ped, 0, 1)
     
@@ -419,10 +416,6 @@ local function cinematicSpawn(coords)
     -- Switch back down
     SwitchToMultiSecondpart(cache.ped)
     
-    -- Small delay to let zoom-down start, then fade in
-    Wait(500)
-    DoScreenFadeIn(1000)
-    
     while IsPlayerSwitchInProgress() do Wait(0) end
 
     -- Start Beach Scene
@@ -433,6 +426,7 @@ local function cinematicSpawn(coords)
     PlayCamAnim(cam, 'action_camera', dict, sceneCoords.x, sceneCoords.y, sceneCoords.z, 0.0, 0.0, sceneCoords.w, false, 2)
     RenderScriptCams(true, false, 1000, true, false)
     
+    DoScreenFadeIn(2000)
     Wait(13000)
     NetworkStopSynchronisedScene(scene)
     RenderScriptCams(false, true, 1000, true, false)

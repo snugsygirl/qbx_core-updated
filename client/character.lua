@@ -389,20 +389,7 @@ local function cinematicSpawn(coords)
     local pos = coords
     local dict = IsPedMale(cache.ped) and 'anim@scripted@heist@ig25_beach@male@' or 'anim@scripted@heist@ig25_beach@heeled@'
     
-    -- Sky Switch sequence
-    SwitchToMultiFirstpart(cache.ped, 0, 1)
-    
-    CreateThread(function()
-        while IsPlayerSwitchInProgress() do
-            Wait(0)
-            SetCloudHatOpacity(0)
-            HideHudAndRadarThisFrame()
-        end
-    end)
-    
-    while GetPlayerSwitchState() ~= 5 do Wait(0) end
-    
-    -- Teleport and prepare while in clouds
+    -- Teleport and prepare
     SetEntityCoords(cache.ped, pos.x, pos.y, pos.z, false, false, false, true)
     SetEntityHeading(cache.ped, pos.w)
     FreezeEntityPosition(cache.ped, true)
@@ -413,10 +400,20 @@ local function cinematicSpawn(coords)
     local scene = NetworkCreateSynchronisedScene(sceneCoords.x, sceneCoords.y, sceneCoords.z, 0.0, 0.0, sceneCoords.w, 2, false, false, 1.0, 0.0, 1.0)
     NetworkAddPedToSynchronisedScene(cache.ped, scene, dict, 'action', 8.0, -8.0, 0, 0, 1000.0, 0)
     
-    -- Switch back down
-    SwitchToMultiSecondpart(cache.ped)
+    -- Start zooming down from sky
+    SwitchInPlayer(cache.ped, 1, 2)
+    
+    CreateThread(function()
+        while IsPlayerSwitchInProgress() do
+            Wait(0)
+            SetCloudHatOpacity(0)
+            HideHudAndRadarThisFrame()
+        end
+    end)
     
     while IsPlayerSwitchInProgress() do Wait(0) end
+
+    -- Start Beach Scene
 
     -- Start Beach Scene
     NetworkStartSynchronisedScene(scene)

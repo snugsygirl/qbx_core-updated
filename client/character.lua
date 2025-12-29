@@ -389,7 +389,23 @@ local function cinematicSpawn(coords)
     local pos = coords
     local dict = IsPedMale(cache.ped) and 'anim@scripted@heist@ig25_beach@male@' or 'anim@scripted@heist@ig25_beach@heeled@'
     
-    -- Teleport and prepare
+    -- Hide the zoom up instantly
+    DoScreenFadeOut(0)
+    
+    -- Sky Switch sequence
+    SwitchToMultiFirstpart(cache.ped, 0, 1)
+    
+    CreateThread(function()
+        while IsPlayerSwitchInProgress() do
+            Wait(0)
+            SetCloudHatOpacity(0)
+            HideHudAndRadarThisFrame()
+        end
+    end)
+    
+    while GetPlayerSwitchState() ~= 5 do Wait(0) end
+    
+    -- Teleport and prepare while in clouds
     SetEntityCoords(cache.ped, pos.x, pos.y, pos.z, false, false, false, true)
     SetEntityHeading(cache.ped, pos.w)
     FreezeEntityPosition(cache.ped, true)
@@ -400,20 +416,14 @@ local function cinematicSpawn(coords)
     local scene = NetworkCreateSynchronisedScene(sceneCoords.x, sceneCoords.y, sceneCoords.z, 0.0, 0.0, sceneCoords.w, 2, false, false, 1.0, 0.0, 1.0)
     NetworkAddPedToSynchronisedScene(cache.ped, scene, dict, 'action', 8.0, -8.0, 0, 0, 1000.0, 0)
     
-    -- Start zooming down from sky
-    SwitchInPlayer(cache.ped, 1, 2)
+    -- Switch back down
+    SwitchToMultiSecondpart(cache.ped)
     
-    CreateThread(function()
-        while IsPlayerSwitchInProgress() do
-            Wait(0)
-            SetCloudHatOpacity(0)
-            HideHudAndRadarThisFrame()
-        end
-    end)
+    -- Small delay to let zoom-down start, then fade in
+    Wait(500)
+    DoScreenFadeIn(1000)
     
     while IsPlayerSwitchInProgress() do Wait(0) end
-
-    -- Start Beach Scene
 
     -- Start Beach Scene
     NetworkStartSynchronisedScene(scene)
@@ -423,7 +433,6 @@ local function cinematicSpawn(coords)
     PlayCamAnim(cam, 'action_camera', dict, sceneCoords.x, sceneCoords.y, sceneCoords.z, 0.0, 0.0, sceneCoords.w, false, 2)
     RenderScriptCams(true, false, 1000, true, false)
     
-    DoScreenFadeIn(2000)
     Wait(13000)
     NetworkStopSynchronisedScene(scene)
     RenderScriptCams(false, true, 1000, true, false)

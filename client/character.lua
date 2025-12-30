@@ -388,10 +388,10 @@ end
 local function cinematicSpawn(coords)
     local pos = coords
     local dict = IsPedMale(cache.ped) and 'anim@scripted@heist@ig25_beach@male@' or 'anim@scripted@heist@ig25_beach@heeled@'
-    
+
     -- Sky Switch sequence
     SwitchToMultiFirstpart(cache.ped, 0, 1)
-    
+
     CreateThread(function()
         while IsPlayerSwitchInProgress() do
             Wait(0)
@@ -399,42 +399,37 @@ local function cinematicSpawn(coords)
             HideHudAndRadarThisFrame()
         end
     end)
-    
+
     while GetPlayerSwitchState() ~= 5 do Wait(0) end
-    
+
     -- Teleport and prepare while in clouds
     SetEntityCoords(cache.ped, pos.x, pos.y, pos.z, false, false, false, true)
     SetEntityHeading(cache.ped, pos.w)
     FreezeEntityPosition(cache.ped, true)
-    
+
     lib.requestAnimDict(dict, 10000)
-    
+
     local sceneCoords = vec4(pos.x, pos.y, pos.z - 1.0, pos.w)
     local scene = NetworkCreateSynchronisedScene(sceneCoords.x, sceneCoords.y, sceneCoords.z, 0.0, 0.0, sceneCoords.w, 2, false, false, 1.0, 0.0, 1.0)
     NetworkAddPedToSynchronisedScene(cache.ped, scene, dict, 'action', 8.0, -8.0, 0, 0, 1000.0, 0)
-    
+
     -- Switch back down
     SwitchToMultiSecondpart(cache.ped)
-    
+
     while IsPlayerSwitchInProgress() do Wait(0) end
 
     -- Start Beach Scene
+    NetworkAddSynchronisedSceneCamera(scene, dict, 'action_camera')
     NetworkStartSynchronisedScene(scene)
     SetFacialIdleAnimOverride(cache.ped, 'HS4F_IG25_BEACH', 0)
-    
-    local cam = CreateCam('DEFAULT_ANIMATED_CAMERA', true)
-    PlayCamAnim(cam, 'action_camera', dict, sceneCoords.x, sceneCoords.y, sceneCoords.z, 0.0, 0.0, sceneCoords.w, false, 2)
-    RenderScriptCams(true, false, 1000, true, false)
-    
+
     DoScreenFadeIn(2000)
     Wait(13000)
     NetworkStopSynchronisedScene(scene)
-    RenderScriptCams(false, true, 1000, true, false)
-    DestroyCam(cam, false)
     ClearFacialIdleAnimOverride(cache.ped)
     FreezeEntityPosition(cache.ped, false)
     RemoveAnimDict(dict)
-    
+
     TriggerServerEvent('QBCore:Server:OnPlayerLoaded')
     TriggerEvent('QBCore:Client:OnPlayerLoaded')
     TriggerServerEvent('qb-houses:server:SetInsideMeta', 0, false)
@@ -449,34 +444,34 @@ end)
 RegisterNUICallback('playCharacter', function(data, cb)
     local citizenId = data.citizenid
     if not citizenId then return end
-    
+
     lib.callback.await('qbx_core:server:loadCharacter', false, citizenId)
-    
+
     destroyPreviewCam()
     SendNUIMessage({ action = 'closeMulticharacter' })
     SetNuiFocus(false, false)
-    
+
     -- Use loaded position
     local pos = QBX.PlayerData.position
     cinematicSpawn(pos)
-    
+
     cb('ok')
 end)
 
 RegisterNUICallback('createCharacter', function(data, cb)
     SendNUIMessage({ action = 'closeMulticharacter' })
     SetNuiFocus(false, false)
-    
+
     -- Find first empty slot
     local slot
-    -- We need to know which slot is empty. 
-    -- Simplification: Just find a slot not in the list or ask server? 
-    -- existing logic was: createCharacter(i) where i was passed. 
+    -- We need to know which slot is empty.
+    -- Simplification: Just find a slot not in the list or ask server?
+    -- existing logic was: createCharacter(i) where i was passed.
     -- The server likely handles cid.
-    -- Let's fetch characters again or keep track? 
-    -- Wait, createCharacter(cid) takes a cid. 
+    -- Let's fetch characters again or keep track?
+    -- Wait, createCharacter(cid) takes a cid.
     -- We can just find the first available cid by checking existing characters.
-    
+
     local characters, amount = lib.callback.await('qbx_core:server:getCharacters')
     local usedCids = {}
     for _, char in pairs(characters) do
@@ -485,11 +480,11 @@ RegisterNUICallback('createCharacter', function(data, cb)
         -- But amount is total slots? No, amount was returned from server.
         -- Let's assume sequential IDs for now as per existing loop `for i = 1, amount do`
     end
-    
+
     -- We need to know MAX slots. Default Qbox might not send max slots?
-    -- checking existing loop: `for i = 1, amount do` 
+    -- checking existing loop: `for i = 1, amount do`
     -- existing logic: `local success = createCharacter(i)`
-    
+
     local availableCid = nil
     for i = 1, 5 do -- 5 is arbitrary default, usually config.
          local used = false
@@ -504,19 +499,19 @@ RegisterNUICallback('createCharacter', function(data, cb)
              end
          end
     end
-    
+
     -- Actually, simpler:
-    -- The previous loop `for i = 1, amount do` suggests `amount` is the limit? 
+    -- The previous loop `for i = 1, amount do` suggests `amount` is the limit?
     -- Or amount is count? Usually getCharacters returns list and generic info?
     -- `characters` was a map `[i] = char`.
-    
+
     for i = 1, 10 do -- reasonable limit check
         if not characters[i] then
              availableCid = i
              break
         end
     end
-    
+
     if availableCid then
         local success = createCharacter(availableCid)
         if not success then
@@ -533,24 +528,24 @@ end)
 RegisterNUICallback('deleteCharacter', function(data, cb)
     local citizenId = data.citizenid
     if not citizenId then return end
-    
+
     -- We can close NUI to show dialog? Or show dialog on top?
     -- lib.alertDialog works while NUI is focused? Usually yes if it's ox_lib.
     -- But let's verify.
-    
+
     local alert = lib.alertDialog({
         header = locale('info.delete_character'),
         content = locale('info.confirm_delete'),
         centered = true,
         cancel = true
     })
-    
+
     if alert == 'confirm' then
         local success = lib.callback.await('qbx_core:server:deleteCharacter', false, citizenId)
         Notify(success and locale('success.character_deleted') or locale('error.character_delete_failed'), success and 'success' or 'error')
-        
+
         destroyPreviewCam()
-        
+
         -- Refresh UI
         local characters, amount = lib.callback.await('qbx_core:server:getCharacters')
         local options = {}
